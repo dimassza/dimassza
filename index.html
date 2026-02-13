@@ -193,7 +193,7 @@
         right: 0;
         bottom: 0;
         border-radius: 1.25rem 1.25rem 0 0;
-        max-height: min(86dvh, 780px);
+        max-height: min(88dvh, 780px);
       }
 
       .sheet-hidden {
@@ -435,6 +435,7 @@
     let scrubIndex = null;
     let isScrubbing = false;
     let sheetOpen = false;
+    let userToggledSheet = false;
 
     function setStatus(text, isError = false) {
       statusEl.textContent = text;
@@ -722,6 +723,19 @@
       sheet.classList.toggle("sheet-hidden", !sheetOpen);
     }
 
+    function syncSheetForViewport(force = false) {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        if (force || !userToggledSheet) {
+          setSheetState(true);
+        } else {
+          setSheetState(sheetOpen);
+        }
+      } else {
+        setSheetState(true);
+      }
+    }
+
     function stopPlayback() {
       if (playTimer) {
         clearInterval(playTimer);
@@ -960,7 +974,10 @@
     fitBtn.addEventListener("click", fitTrack);
     clearBtn.addEventListener("click", clearMap);
 
-    sheetToggle.addEventListener("click", () => setSheetState(!sheetOpen));
+    sheetToggle.addEventListener("click", () => {
+      userToggledSheet = true;
+      setSheetState(!sheetOpen);
+    });
     desktopSheetBtn.addEventListener("click", () => {
       const isDesktopHidden = sheet.classList.contains("md:hidden");
       sheet.classList.toggle("md:hidden", !isDesktopHidden);
@@ -969,14 +986,14 @@
     });
 
     window.addEventListener("resize", () => {
-      setSheetState(sheetOpen);
+      syncSheetForViewport();
       map.invalidateSize();
       drawElevationChart(elevationSeries, scrubIndex);
     });
 
     lucide.createIcons();
     resetMeta();
-    setSheetState(false);
+    syncSheetForViewport(true);
   </script>
 </body>
 </html>
