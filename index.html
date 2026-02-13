@@ -189,21 +189,22 @@
 
     @media (max-width: 767px) {
       #sheet {
-        left: 0.5rem;
-        right: 0.5rem;
-        bottom: 0.5rem;
-        border-radius: 1rem;
-        max-height: min(84dvh, 760px);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 1.25rem 1.25rem 0 0;
+        max-height: min(86dvh, 780px);
       }
 
       .sheet-hidden {
-        transform: translateY(calc(100% - 74px));
+        transform: translateY(calc(100% - 64px));
       }
 
       .mobile-summary {
-        left: 0.5rem;
-        right: 0.5rem;
-        bottom: calc(0.5rem + env(safe-area-inset-bottom));
+        left: 0.75rem;
+        right: 0.75rem;
+        top: calc(0.75rem + env(safe-area-inset-top));
+        bottom: auto;
       }
 
       .waypoint-list {
@@ -213,7 +214,7 @@
 
     @media (max-width: 520px) {
       #metaGrid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
       }
 
       .mobile-summary .stat-v {
@@ -222,6 +223,24 @@
 
       .control-title {
         font-size: 1.65rem;
+      }
+
+      #metaGrid .stat-v {
+        font-size: 0.94rem;
+      }
+    }
+
+    @media (max-width: 420px) {
+      #metaGrid {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-summary .stat-v {
+        font-size: 0.86rem;
+      }
+
+      .control-title {
+        font-size: 1.5rem;
       }
     }
 
@@ -261,10 +280,10 @@
 
     <section class="mobile-summary pointer-events-none absolute left-4 right-4 bottom-4 z-[560] md:hidden">
       <div class="glass pointer-events-auto rounded-2xl p-3">
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div class="stat-card"><div class="stat-k">Distance</div><div class="stat-v" id="mDistanceMobile">-</div></div>
           <div class="stat-card"><div class="stat-k">Time</div><div class="stat-v" id="mDurationMobile">-</div></div>
-          <div class="stat-card"><div class="stat-k">Elev +/-</div><div class="stat-v" id="mElevMobile">-</div></div>
+          <div class="stat-card col-span-2 sm:col-span-1"><div class="stat-k">Elev +/-</div><div class="stat-v" id="mElevMobile">-</div></div>
         </div>
       </div>
     </section>
@@ -294,14 +313,14 @@
         Drop file GPX di sini untuk upload cepat.
       </div>
 
-      <div class="mt-3 grid grid-cols-3 gap-2">
+      <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
         <button class="athlete-btn primary flex items-center justify-center gap-1.5 px-2 text-sm" id="playBtn" type="button">
           <i data-lucide="play" class="h-4 w-4"></i><span>Play</span>
         </button>
         <button class="athlete-btn flex items-center justify-center gap-1.5 px-2 text-sm" id="fitBtn" type="button">
           <i data-lucide="focus" class="h-4 w-4"></i><span>Fit</span>
         </button>
-        <button class="athlete-btn warn flex items-center justify-center gap-1.5 px-2 text-sm" id="clearBtn" type="button">
+        <button class="athlete-btn warn col-span-2 flex items-center justify-center gap-1.5 px-2 text-sm sm:col-span-1" id="clearBtn" type="button">
           <i data-lucide="trash-2" class="h-4 w-4"></i><span>Clear</span>
         </button>
       </div>
