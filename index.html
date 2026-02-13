@@ -321,6 +321,7 @@
           <option value="dark">Dark Mono</option>
           <option value="light">Light Mono</option>
           <option value="street">Street</option>
+          <option value="satellite">Satellite</option>
         </select>
       </div>
 
@@ -402,6 +403,10 @@
       street: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
+      }),
+      satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community'
       })
     };
 
