@@ -113,6 +113,16 @@
       text-transform: uppercase;
       font-weight: 600;
     }
+    .stat-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .stat-label i {
+      width: 0.8rem;
+      height: 0.8rem;
+      color: #d2d2d2;
+    }
 
     .stat-v {
       margin-top: 0.2rem;
@@ -258,6 +268,68 @@
       display: none;
     }
 
+    .pulse-marker {
+      position: relative;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid #00d4ff;
+      background: rgba(0, 212, 255, 0.25);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.9);
+    }
+    .pulse-marker::after {
+      content: "";
+      position: absolute;
+      inset: -7px;
+      border-radius: 999px;
+      border: 2px solid rgba(0, 212, 255, 0.52);
+      animation: pulseRing 1.4s ease-out infinite;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(0.72); opacity: 0.95; }
+      100% { transform: scale(1.45); opacity: 0; }
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(8, 8, 8, 0.76);
+      backdrop-filter: blur(4px);
+      z-index: 30;
+      display: grid;
+      align-content: start;
+      gap: 0.6rem;
+      padding: 1rem;
+    }
+    .loading-overlay.hidden {
+      display: none;
+    }
+    .skeleton-line {
+      height: 14px;
+      border-radius: 0.45rem;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+      background-size: 210% 100%;
+      animation: shimmer 1.1s linear infinite;
+    }
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .skeleton-card {
+      height: 56px;
+      border-radius: 0.8rem;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+      background-size: 210% 100%;
+      animation: shimmer 1.1s linear infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
     .waypoint-list::-webkit-scrollbar {
       width: 8px;
     }
@@ -280,9 +352,9 @@
         <p class="mt-1 text-xs font-medium text-neutral-400">Performance GPX Viewer</p>
 
         <div class="mt-3 grid grid-cols-3 gap-2" id="metaGridDesktop">
-          <div class="stat-card"><div class="stat-k">Distance</div><div class="stat-v" id="mDistanceDesk">-</div></div>
-          <div class="stat-card"><div class="stat-k">Duration</div><div class="stat-v" id="mDurationDesk">-</div></div>
-          <div class="stat-card"><div class="stat-k">Pace</div><div class="stat-v" id="mSpeedDesk">-</div></div>
+          <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="route"></i>Distance</span></div><div class="stat-v" id="mDistanceDesk">-</div></div>
+          <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="timer"></i>Duration</span></div><div class="stat-v" id="mDurationDesk">-</div></div>
+          <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="activity"></i>Pace</span></div><div class="stat-v" id="mSpeedDesk">-</div></div>
         </div>
       </div>
     </section>
@@ -290,9 +362,9 @@
     <section class="mobile-summary pointer-events-none absolute left-4 right-4 bottom-4 z-[560] md:hidden">
       <div class="glass pointer-events-auto rounded-2xl p-3">
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <div class="stat-card"><div class="stat-k">Distance</div><div class="stat-v" id="mDistanceMobile">-</div></div>
-          <div class="stat-card"><div class="stat-k">Time</div><div class="stat-v" id="mDurationMobile">-</div></div>
-          <div class="stat-card col-span-2 sm:col-span-1"><div class="stat-k">Elev +/-</div><div class="stat-v" id="mElevMobile">-</div></div>
+          <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="route"></i>Distance</span></div><div class="stat-v" id="mDistanceMobile">-</div></div>
+          <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="timer"></i>Time</span></div><div class="stat-v" id="mDurationMobile">-</div></div>
+          <div class="stat-card col-span-2 sm:col-span-1"><div class="stat-k"><span class="stat-label"><i data-lucide="mountain"></i>Elev +/-</span></div><div class="stat-v" id="mElevMobile">-</div></div>
         </div>
       </div>
     </section>
@@ -328,7 +400,7 @@
         Drop file GPX di sini untuk upload cepat.
       </div>
 
-      <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <button class="athlete-btn primary flex items-center justify-center gap-1.5 px-2 text-sm" id="playBtn" type="button">
           <i data-lucide="play" class="h-4 w-4"></i><span>Play</span>
         </button>
@@ -338,15 +410,18 @@
         <button class="athlete-btn warn col-span-2 flex items-center justify-center gap-1.5 px-2 text-sm sm:col-span-1" id="clearBtn" type="button">
           <i data-lucide="trash-2" class="h-4 w-4"></i><span>Clear</span>
         </button>
+        <button class="athlete-btn col-span-2 flex items-center justify-center gap-1.5 px-2 text-sm sm:col-span-1" id="exportBtn" type="button">
+          <i data-lucide="image-down" class="h-4 w-4"></i><span>Export</span>
+        </button>
       </div>
 
       <div class="mt-3 grid grid-cols-2 gap-2" id="metaGrid">
-        <div class="stat-card"><div class="stat-k">File</div><div class="stat-v text-sm" id="mFile">-</div></div>
-        <div class="stat-card"><div class="stat-k">Track Points</div><div class="stat-v" id="mPoints">-</div></div>
-        <div class="stat-card"><div class="stat-k">Distance</div><div class="stat-v" id="mDistance">-</div></div>
-        <div class="stat-card"><div class="stat-k">Duration</div><div class="stat-v" id="mDuration">-</div></div>
-        <div class="stat-card"><div class="stat-k">Avg Speed</div><div class="stat-v" id="mSpeed">-</div></div>
-        <div class="stat-card"><div class="stat-k">Elevation +/-</div><div class="stat-v" id="mElev">-</div></div>
+        <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="file"></i>File</span></div><div class="stat-v text-sm" id="mFile">-</div></div>
+        <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="binary"></i>Track Points</span></div><div class="stat-v" id="mPoints">-</div></div>
+        <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="route"></i>Distance</span></div><div class="stat-v" id="mDistance">-</div></div>
+        <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="timer"></i>Duration</span></div><div class="stat-v" id="mDuration">-</div></div>
+        <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="activity"></i>Avg Speed</span></div><div class="stat-v" id="mSpeed">-</div></div>
+        <div class="stat-card"><div class="stat-k"><span class="stat-label"><i data-lucide="mountain"></i>Elevation +/-</span></div><div class="stat-v" id="mElev">-</div></div>
       </div>
 
       <p id="status" class="status mt-2 text-xs font-medium text-neutral-300">Menunggu file GPX...</p>
@@ -357,6 +432,16 @@
           <li class="rounded-lg border border-white/15 bg-black/30 px-2 py-2">Belum ada waypoint.</li>
         </ul>
       </div>
+      </div>
+      <div id="loadingOverlay" class="loading-overlay hidden" aria-hidden="true">
+        <div class="skeleton-line w-36"></div>
+        <div class="skeleton-line w-24"></div>
+        <div class="skeleton-grid">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
       </div>
     </aside>
 
@@ -384,6 +469,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="https://unpkg.com/@tmcw/togeojson@6.0.0/dist/togeojson.umd.js"></script>
+  <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
     const mapScope = document.getElementById("mapScope");
@@ -412,6 +498,7 @@
     const basemapSelect = document.getElementById("basemapSelect");
     const fitBtn = document.getElementById("fitBtn");
     const clearBtn = document.getElementById("clearBtn");
+    const exportBtn = document.getElementById("exportBtn");
     const playBtn = document.getElementById("playBtn");
     const hud = document.getElementById("hud");
     const waypointList = document.getElementById("waypointList");
@@ -427,6 +514,7 @@
     const sheet = document.getElementById("sheet");
     const controlBody = document.getElementById("controlBody");
     const controlToggleBtn = document.getElementById("controlToggleBtn");
+    const loadingOverlay = document.getElementById("loadingOverlay");
 
     const fields = {
       file: document.getElementById("mFile"),
@@ -448,11 +536,14 @@
     let distanceSeriesKm = [];
     let playMarker = null;
     let scrubMarker = null;
+    let hoverRaf = null;
+    let hoverEvent = null;
     let playTimer = null;
     let elevationSeries = [];
     let scrubIndex = null;
     let isScrubbing = false;
     let controlCollapsed = false;
+    let isParsing = false;
 
     function setStatus(text, isError = false) {
       statusEl.textContent = text;
@@ -466,6 +557,82 @@
       fields.distanceMobile.textContent = fields.distance.textContent;
       fields.durationMobile.textContent = fields.duration.textContent;
       fields.elevMobile.textContent = fields.elev.textContent;
+    }
+
+    function setParsingState(nextLoading) {
+      isParsing = nextLoading;
+      loadingOverlay.classList.toggle("hidden", !isParsing);
+      const disabled = isParsing;
+      fileInput.disabled = disabled;
+      basemapSelect.disabled = disabled;
+      playBtn.disabled = disabled;
+      fitBtn.disabled = disabled;
+      clearBtn.disabled = disabled;
+      exportBtn.disabled = disabled;
+      dropzone.classList.toggle("opacity-40", disabled);
+      dropzone.classList.toggle("pointer-events-none", disabled);
+    }
+
+    function animateValue({ from, to, duration = 900, onUpdate }) {
+      const start = performance.now();
+      function tick(now) {
+        const p = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const value = from + (to - from) * eased;
+        onUpdate(value, p >= 1);
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function animateStats({ distance, durationSec, avgSpeed, elevUp, elevDown }) {
+      fields.distance.textContent = "0.00 km";
+      fields.duration.textContent = "0m 0d";
+      fields.speed.textContent = "0.00 km/j";
+      fields.elev.textContent = "0m / 0m";
+      syncSummaryCards();
+
+      animateValue({
+        from: 0,
+        to: distance,
+        onUpdate: (value) => {
+          fields.distance.textContent = `${value.toFixed(2)} km`;
+          syncSummaryCards();
+        }
+      });
+
+      animateValue({
+        from: 0,
+        to: Math.max(0, durationSec || 0),
+        onUpdate: (value) => {
+          fields.duration.textContent = formatDuration(value);
+          syncSummaryCards();
+        }
+      });
+
+      animateValue({
+        from: 0,
+        to: Number.isFinite(avgSpeed) ? avgSpeed : 0,
+        onUpdate: (value) => {
+          fields.speed.textContent = `${value.toFixed(2)} km/j`;
+          syncSummaryCards();
+        }
+      });
+
+      animateValue({
+        from: 0,
+        to: Math.max(elevUp, elevDown, 1),
+        onUpdate: (value, done) => {
+          const p = Math.max(0.0001, Math.max(elevUp, elevDown, 1));
+          const up = Math.min(elevUp, (value / p) * elevUp);
+          const down = Math.min(elevDown, (value / p) * elevDown);
+          fields.elev.textContent = `${up.toFixed(0)}m / ${down.toFixed(0)}m`;
+          if (done) {
+            fields.elev.textContent = `${elevUp.toFixed(0)}m / ${elevDown.toFixed(0)}m`;
+          }
+          syncSummaryCards();
+        }
+      });
     }
 
     function resetMeta() {
@@ -638,14 +805,92 @@
       return raw;
     }
 
+    function createPulseMarker(lat, lng) {
+      return L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: "",
+          html: '<div class="pulse-marker"></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        }),
+        keyboard: false
+      }).addTo(map);
+    }
+
+    function getSegmentColor(a, b) {
+      const aEle = Number(a[2]);
+      const bEle = Number(b[2]);
+      const elevationDiff = (Number.isFinite(bEle) ? bEle : 0) - (Number.isFinite(aEle) ? aEle : 0);
+      const dMeters = Math.max(1, map.distance([a[1], a[0]], [b[1], b[0]]));
+      const grade = (elevationDiff / dMeters) * 100;
+      if (grade > 5) return "#ff3b30";
+      if (grade > 2) return "#ff7a1a";
+      if (grade > -1) return "#ffd60a";
+      if (grade > -4) return "#3ddc97";
+      return "#2ed573";
+    }
+
+    function createTrackLayer(tracks, waypoints) {
+      const parts = [];
+      for (let i = 1; i < tracks.length; i += 1) {
+        const a = tracks[i - 1];
+        const b = tracks[i];
+        parts.push(L.polyline([[a[1], a[0]], [b[1], b[0]]], {
+          color: getSegmentColor(a, b),
+          weight: 5,
+          opacity: 0.94,
+          lineCap: "round"
+        }));
+      }
+
+      waypoints.forEach((wp) => {
+        const marker = L.circleMarker([wp.lat, wp.lng], {
+          radius: 6,
+          color: "#007AFF",
+          fillColor: "#007AFF",
+          fillOpacity: 0.9,
+          weight: 1
+        });
+        marker.bindPopup(`<strong>${wp.name}</strong><br/>Waypoint`);
+        parts.push(marker);
+      });
+
+      return L.featureGroup(parts);
+    }
+
+    async function exportAsImage() {
+      try {
+        setStatus("Menyiapkan export image...");
+        const node = document.querySelector("main");
+        const canvas = await html2canvas(node, {
+          backgroundColor: null,
+          useCORS: true,
+          scale: Math.min(2, window.devicePixelRatio || 1.5),
+          logging: false
+        });
+        const link = document.createElement("a");
+        link.download = `gpx-share-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        setStatus("Export image berhasil.");
+      } catch (err) {
+        setStatus(`Export gagal: ${err.message}`, true);
+      }
+    }
+
     function clearScrubMarker() {
       if (!scrubMarker) return;
       map.removeLayer(scrubMarker);
       scrubMarker = null;
+      hoverEvent = null;
+      if (hoverRaf) {
+        cancelAnimationFrame(hoverRaf);
+        hoverRaf = null;
+      }
     }
 
     function placeElevTooltip(clientX, clientY, elevText) {
-      if (!isScrubbing) {
+      if (!routeCoords.length) {
         elevTooltipEl.style.display = "none";
         return;
       }
@@ -664,13 +909,7 @@
       scrubIndex = idx;
       const [lng, lat] = routeCoords[idx];
       if (!scrubMarker) {
-        scrubMarker = L.circleMarker([lat, lng], {
-          radius: 7,
-          color: "#ffffff",
-          fillColor: "#007AFF",
-          fillOpacity: 0.95,
-          weight: 2
-        }).addTo(map);
+        scrubMarker = createPulseMarker(lat, lng);
       } else {
         scrubMarker.setLatLng([lat, lng]);
       }
@@ -689,13 +928,13 @@
       drawElevationChart(elevationSeries, scrubIndex);
     }
 
-    function scrubFromEvent(evt) {
+    function scrubFromEvent(evt, panMap = false) {
       if (!routeCoords.length) return;
       const rect = elevCanvas.getBoundingClientRect();
       const x = Math.max(0, Math.min(rect.width, evt.clientX - rect.left));
       const ratio = rect.width > 0 ? x / rect.width : 0;
       const idx = Math.round(ratio * Math.max(0, routeCoords.length - 1));
-      updateScrubMarker(idx, true, evt);
+      updateScrubMarker(idx, panMap, evt);
     }
 
     function formatDuration(seconds) {
@@ -816,6 +1055,7 @@
       if (!file) return;
       stopPlayback();
       clearScrubMarker();
+      setParsingState(true);
       setStatus("Membaca file GPX...");
 
       try {
@@ -830,35 +1070,6 @@
         if (!geojson.features.length) {
           throw new Error("Tidak ada data track/route/waypoint di file.");
         }
-
-        if (activeLayer) {
-          map.removeLayer(activeLayer);
-        }
-
-        activeLayer = L.geoJSON(geojson, {
-          style: {
-            color: "#fc4c02",
-            weight: 5,
-            opacity: 0.95
-          },
-          pointToLayer: (feature, latlng) => {
-            const isWaypoint = feature.geometry?.type === "Point";
-            return L.circleMarker(latlng, {
-              radius: isWaypoint ? 6 : 4,
-              color: isWaypoint ? "#007AFF" : "#fc4c02",
-              fillColor: isWaypoint ? "#007AFF" : "#fc4c02",
-              fillOpacity: 0.9,
-              weight: 1
-            });
-          },
-          onEachFeature: (feature, layer) => {
-            const n = feature?.properties?.name || "Tanpa nama";
-            const t = feature?.geometry?.type || "Unknown";
-            layer.bindPopup(`<strong>${n}</strong><br/>${t}`);
-          }
-        }).addTo(map);
-
-        fitTrack();
 
         const tracks = [];
         const waypoints = [];
@@ -878,6 +1089,15 @@
         }
 
         routeCoords = tracks;
+        if (!routeCoords.length) {
+          throw new Error("Track point kosong.");
+        }
+
+        if (activeLayer) {
+          map.removeLayer(activeLayer);
+        }
+        activeLayer = createTrackLayer(tracks, waypoints).addTo(map);
+        fitTrack();
 
         const distance = computeDistanceKm(tracks);
         const elev = computeElevation(tracks);
@@ -889,10 +1109,13 @@
 
         fields.file.textContent = file.name;
         fields.points.textContent = String(tracks.length);
-        fields.distance.textContent = `${distance.toFixed(2)} km`;
-        fields.duration.textContent = formatDuration(durationSec);
-        fields.speed.textContent = Number.isFinite(avgSpeed) ? `${avgSpeed.toFixed(2)} km/j` : "-";
-        fields.elev.textContent = `${elev.up.toFixed(0)}m / ${elev.down.toFixed(0)}m`;
+        animateStats({
+          distance,
+          durationSec: Number.isFinite(durationSec) ? durationSec : 0,
+          avgSpeed,
+          elevUp: elev.up,
+          elevDown: elev.down
+        });
 
         setWaypoints(waypoints);
         elevationSeries = elevSeries;
@@ -901,11 +1124,12 @@
         dragDistanceEl.textContent = "Drag: 0.00 km";
         dragElevEl.textContent = Number.isFinite(elevationSeries[0]) ? `Elev: ${elevationSeries[0].toFixed(0)} m` : "Elev: -";
         drawElevationChart(elevationSeries);
-        syncSummaryCards();
         setStatus(`GPX dimuat: ${file.name} (waypoint: ${waypoints.length}).`);
       } catch (err) {
         clearMap();
         setStatus(`Gagal memuat GPX: ${err.message}`, true);
+      } finally {
+        setParsingState(false);
       }
     }
 
@@ -941,12 +1165,21 @@
       isScrubbing = true;
       elevCanvas.classList.add("scrubbing");
       elevCanvas.setPointerCapture(e.pointerId);
-      scrubFromEvent(e);
+      scrubFromEvent(e, true);
     });
 
     elevCanvas.addEventListener("pointermove", (e) => {
-      if (!isScrubbing) return;
-      scrubFromEvent(e);
+      if (isScrubbing) {
+        scrubFromEvent(e, true);
+        return;
+      }
+      if (!routeCoords.length) return;
+      hoverEvent = e;
+      if (hoverRaf) return;
+      hoverRaf = requestAnimationFrame(() => {
+        if (hoverEvent) scrubFromEvent(hoverEvent, false);
+        hoverRaf = null;
+      });
     });
 
     elevCanvas.addEventListener("pointerup", (e) => {
@@ -961,6 +1194,13 @@
       isScrubbing = false;
       elevCanvas.classList.remove("scrubbing");
       elevTooltipEl.style.display = "none";
+    });
+
+    elevCanvas.addEventListener("pointerleave", () => {
+      if (isScrubbing) return;
+      elevTooltipEl.style.display = "none";
+      clearScrubMarker();
+      drawElevationChart(elevationSeries, null);
     });
 
     basemapSelect.addEventListener("change", () => {
@@ -978,6 +1218,7 @@
 
     fitBtn.addEventListener("click", fitTrack);
     clearBtn.addEventListener("click", clearMap);
+    exportBtn.addEventListener("click", exportAsImage);
 
     controlToggleBtn.addEventListener("click", () => setControlCollapsed(!controlCollapsed));
 
@@ -988,6 +1229,7 @@
     });
 
     lucide.createIcons();
+    setParsingState(false);
     resetMeta();
     setControlCollapsed(false);
   </script>
