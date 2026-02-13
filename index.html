@@ -189,7 +189,7 @@
       #sheet {
         left: 0.75rem;
         right: 0.75rem;
-        top: calc(6rem + env(safe-area-inset-top));
+        top: calc(6.15rem + env(safe-area-inset-top));
         width: auto;
         max-height: min(46dvh, 440px);
         border-radius: 1rem;
@@ -204,6 +204,21 @@
 
       .waypoint-list {
         max-height: 12vh;
+      }
+    }
+
+    @media (min-width: 768px) {
+      #sheet {
+        top: 1rem;
+        left: 1rem;
+        width: 420px;
+        max-height: calc(100dvh - 2rem);
+      }
+
+      .elev-dock {
+        left: 27.5rem;
+        right: 1rem;
+        bottom: 1rem;
       }
     }
 
@@ -239,13 +254,6 @@
       }
     }
 
-    @media (min-width: 1024px) {
-      .elev-dock {
-        left: 1rem;
-        right: 1rem;
-      }
-    }
-
     .control-body-hidden {
       display: none;
     }
@@ -266,7 +274,7 @@
       <div class="map-overlay"></div>
     </section>
 
-    <section class="pointer-events-none absolute left-4 right-4 top-4 z-[550] hidden max-w-md md:block">
+    <section class="pointer-events-none absolute left-4 right-4 top-4 z-[550] hidden max-w-md">
       <div class="glass pointer-events-auto rounded-2xl p-4">
         <p class="headline-font text-3xl font-extrabold uppercase leading-none">Athlete Dashboard</p>
         <p class="mt-1 text-xs font-medium text-neutral-400">Performance GPX Viewer</p>
@@ -289,16 +297,20 @@
       </div>
     </section>
 
-    <aside id="sheet" class="glass pointer-events-auto absolute left-3 right-3 top-24 z-[600] rounded-2xl px-4 pb-4 pt-3 md:left-4 md:right-auto md:top-28 md:w-[430px] md:px-4">
+    <aside id="sheet" class="glass pointer-events-auto absolute left-3 right-3 top-24 z-[600] rounded-2xl px-4 pb-4 pt-3 md:left-4 md:right-auto md:top-4 md:w-[420px] md:px-4">
       <div class="flex items-center justify-between">
-        <h1 class="control-title headline-font text-3xl font-extrabold uppercase">Activity Control</h1>
+        <div>
+          <h1 class="control-title headline-font text-3xl font-extrabold uppercase leading-none">Athlete Dashboard</h1>
+          <p class="mt-1 text-xs font-medium text-neutral-400">Performance GPX Viewer</p>
+        </div>
         <div class="flex items-center gap-2">
           <span id="hud" class="headline-font hidden rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-wider text-orange-300">Playback Idle</span>
-          <button id="controlToggleBtn" type="button" class="athlete-btn px-3 text-sm">Minimize</button>
+          <button id="controlToggleBtn" type="button" class="athlete-btn px-3 text-sm md:hidden">Minimize</button>
         </div>
       </div>
 
       <div id="controlBody" class="mt-3">
+      <p class="headline-font text-xl font-extrabold uppercase tracking-wide text-neutral-100">Activity Control</p>
       <div class="grid grid-cols-2 gap-2">
         <label class="athlete-btn flex cursor-pointer items-center justify-center gap-2 px-3 text-sm font-semibold">
           <i data-lucide="upload" class="h-4 w-4"></i>
@@ -718,7 +730,11 @@
     }
 
     function setControlCollapsed(nextCollapsed) {
-      controlCollapsed = nextCollapsed;
+      if (window.innerWidth >= 768) {
+        controlCollapsed = false;
+      } else {
+        controlCollapsed = nextCollapsed;
+      }
       controlBody.classList.toggle("control-body-hidden", controlCollapsed);
       controlToggleBtn.textContent = controlCollapsed ? "Show" : "Minimize";
       sheet.classList.toggle("pb-4", !controlCollapsed);
@@ -966,6 +982,7 @@
     controlToggleBtn.addEventListener("click", () => setControlCollapsed(!controlCollapsed));
 
     window.addEventListener("resize", () => {
+      setControlCollapsed(controlCollapsed);
       map.invalidateSize();
       drawElevationChart(elevationSeries, scrubIndex);
     });
