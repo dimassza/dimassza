@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Athlete GPX Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: rgba(18, 18, 18, 0.55);
+      --surface-2: rgba(26, 26, 26, 0.7);
+      --line: rgba(255, 255, 255, 0.18);
+      --text: #f4f4f4;
+      --muted: #a3a3a3;
+      --accent: #fc4c02;
+      --accent-soft: rgba(252, 76, 2, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--text);
+      font-family: "Inter", sans-serif;
+      background:
+        radial-gradient(1200px 620px at 88% -10%, rgba(252, 76, 2, 0.16), transparent 54%),
+        radial-gradient(1000px 540px at 10% 112%, rgba(0, 122, 255, 0.09), transparent 58%),
+        var(--bg);
+    }
+
+    .headline-font {
+      font-family: "Barlow Condensed", sans-serif;
+      letter-spacing: 0.03em;
+    }
+
+    .glass {
+      background: linear-gradient(135deg, rgba(30, 30, 30, 0.62), rgba(16, 16, 16, 0.5));
+      border: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .map-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(to bottom, rgba(18, 18, 18, 0.18), transparent 20%),
+        linear-gradient(to top, rgba(18, 18, 18, 0.34), transparent 36%);
+      z-index: 80;
+    }
+
+    .map-dark .leaflet-tile {
+      filter: grayscale(0.16) contrast(1.08) brightness(0.88) saturate(0.85);
+    }
+
+    .map-mono .leaflet-tile {
+      filter: grayscale(1) contrast(1.15) brightness(0.95);
+    }
+
+    .athlete-btn {
+      min-width: 48px;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 0.875rem;
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 700;
+      transition: 160ms ease;
+    }
+
+    .athlete-btn:hover {
+      border-color: rgba(252, 76, 2, 0.55);
+      box-shadow: 0 0 0 1px rgba(252, 76, 2, 0.4);
+    }
+
+    .athlete-btn.primary {
+      border-color: rgba(252, 76, 2, 0.6);
+      background: linear-gradient(120deg, rgba(252, 76, 2, 0.94), rgba(211, 56, 0, 0.96));
+      color: #fff;
+    }
+
+    .athlete-btn.warn {
+      border-color: rgba(255, 99, 71, 0.5);
+      background: rgba(61, 25, 20, 0.72);
+    }
+
+    .stat-card {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 0.9rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(20, 20, 20, 0.58);
+    }
+
+    .stat-k {
+      font-size: 0.67rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .stat-v {
+      margin-top: 0.2rem;
+      color: #fff;
+      font-size: 1.03rem;
+      line-height: 1.25;
+      font-family: "Barlow Condensed", sans-serif;
+      letter-spacing: 0.02em;
+    }
+
+    .status.bad { color: #ff8a68; }
+
+    .elev-wrap {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.95rem;
+      background: rgba(14, 14, 14, 0.62);
+      padding: 0.55rem;
+    }
+
+    #elevCanvas {
+      width: 100%;
+      height: 110px;
+      display: block;
+      border-radius: 0.75rem;
+      background: rgba(5, 5, 5, 0.5);
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #elevCanvas.scrubbing {
+      cursor: grabbing;
+    }
+
+    .elev-tooltip {
+      position: absolute;
+      z-index: 12;
+      transform: translate(10px, -14px);
+      padding: 0.2rem 0.45rem;
+      border-radius: 0.45rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(10, 10, 10, 0.88);
+      color: #f4f4f4;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+      white-space: nowrap;
+      display: none;
+    }
+
+    #sheet {
+      transition: transform 220ms ease;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .sheet-hidden {
+      transform: translateY(calc(100% - 84px));
+    }
+
+    .sheet-open {
+      transform: translateY(0);
+    }
+
+    @media (min-width: 768px) {
+      #sheet {
+        transform: translateY(0) !important;
+        max-height: calc(100dvh - 8rem);
+        width: min(430px, calc(100vw - 2rem));
+      }
+    }
+
+    @media (max-width: 767px) {
+      #sheet {
+        left: 0.5rem;
+        right: 0.5rem;
+        bottom: 0.5rem;
+        border-radius: 1rem;
+        max-height: min(84dvh, 760px);
+      }
+
+      .sheet-hidden {
+        transform: translateY(calc(100% - 74px));
+      }
+
+      .mobile-summary {
+        left: 0.5rem;
+        right: 0.5rem;
+        bottom: calc(0.5rem + env(safe-area-inset-bottom));
+      }
+
+      .waypoint-list {
+        max-height: 22vh;
+      }
+    }
+
+    @media (max-width: 520px) {
+      #metaGrid {
+        grid-template-columns: 1fr;
+      }
+
+      .mobile-summary .stat-v {
+        font-size: 0.92rem;
+      }
+
+      .control-title {
+        font-size: 1.65rem;
+      }
+    }
+
+    .waypoint-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    .waypoint-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body class="h-full overflow-hidden">
+  <main class="relative h-[100dvh] w-full">
+    <section id="mapScope" class="map-dark absolute inset-0">
+      <div id="map"></div>
+      <div class="map-overlay"></div>
+    </section>
+
+    <section class="pointer-events-none absolute left-4 right-4 top-4 z-[550] hidden max-w-md md:block">
+      <div class="glass pointer-events-auto rounded-2xl p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="headline-font text-3xl font-extrabold uppercase leading-none">Athlete Dashboard</p>
+            <p class="mt-1 text-xs font-medium text-neutral-400">Performance GPX Viewer</p>
+          </div>
+          <button id="desktopSheetBtn" type="button" class="athlete-btn px-3 text-sm">Panel</button>
+        </div>
+
+        <div class="mt-3 grid grid-cols-3 gap-2" id="metaGridDesktop">
+          <div class="stat-card"><div class="stat-k">Distance</div><div class="stat-v" id="mDistanceDesk">-</div></div>
+          <div class="stat-card"><div class="stat-k">Duration</div><div class="stat-v" id="mDurationDesk">-</div></div>
+          <div class="stat-card"><div class="stat-k">Pace</div><div class="stat-v" id="mSpeedDesk">-</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mobile-summary pointer-events-none absolute left-4 right-4 bottom-4 z-[560] md:hidden">
+      <div class="glass pointer-events-auto rounded-2xl p-3">
+        <div class="grid grid-cols-3 gap-2">
+          <div class="stat-card"><div class="stat-k">Distance</div><div class="stat-v" id="mDistanceMobile">-</div></div>
+          <div class="stat-card"><div class="stat-k">Time</div><div class="stat-v" id="mDurationMobile">-</div></div>
+          <div class="stat-card"><div class="stat-k">Elev +/-</div><div class="stat-v" id="mElevMobile">-</div></div>
+        </div>
+      </div>
+    </section>
+
+    <aside id="sheet" class="glass sheet-hidden pointer-events-auto absolute bottom-0 left-0 right-0 z-[600] max-h-[88vh] rounded-t-3xl px-4 pb-5 pt-3 md:left-4 md:top-28 md:bottom-auto md:w-[430px] md:rounded-2xl md:px-4 md:pb-4">
+      <button id="sheetToggle" class="mx-auto mb-3 block h-1.5 w-16 rounded-full bg-white/30 md:hidden" type="button" aria-label="Toggle activity details"></button>
+
+      <div class="flex items-center justify-between">
+        <h1 class="control-title headline-font text-3xl font-extrabold uppercase">Activity Control</h1>
+        <span id="hud" class="headline-font hidden rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-wider text-orange-300">Playback Idle</span>
+      </div>
+
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <label class="athlete-btn flex cursor-pointer items-center justify-center gap-2 px-3 text-sm font-semibold">
+          <i data-lucide="upload" class="h-4 w-4"></i>
+          <span>Import GPX</span>
+          <input id="gpxFile" type="file" class="hidden" accept=".gpx,application/gpx+xml,application/xml,text/xml" />
+        </label>
+        <select id="basemapSelect" class="athlete-btn px-3 text-sm">
+          <option value="dark">Dark Mono</option>
+          <option value="light">Light Mono</option>
+          <option value="street">Street</option>
+        </select>
+      </div>
+
+      <div id="dropzone" class="mt-2 rounded-xl border border-dashed border-white/20 bg-black/20 px-3 py-3 text-xs text-neutral-300">
+        Drop file GPX di sini untuk upload cepat.
+      </div>
+
+      <div class="mt-3 grid grid-cols-3 gap-2">
+        <button class="athlete-btn primary flex items-center justify-center gap-1.5 px-2 text-sm" id="playBtn" type="button">
+          <i data-lucide="play" class="h-4 w-4"></i><span>Play</span>
+        </button>
+        <button class="athlete-btn flex items-center justify-center gap-1.5 px-2 text-sm" id="fitBtn" type="button">
+          <i data-lucide="focus" class="h-4 w-4"></i><span>Fit</span>
+        </button>
+        <button class="athlete-btn warn flex items-center justify-center gap-1.5 px-2 text-sm" id="clearBtn" type="button">
+          <i data-lucide="trash-2" class="h-4 w-4"></i><span>Clear</span>
+        </button>
+      </div>
+
+      <div class="mt-3 grid grid-cols-2 gap-2" id="metaGrid">
+        <div class="stat-card"><div class="stat-k">File</div><div class="stat-v text-sm" id="mFile">-</div></div>
+        <div class="stat-card"><div class="stat-k">Track Points</div><div class="stat-v" id="mPoints">-</div></div>
+        <div class="stat-card"><div class="stat-k">Distance</div><div class="stat-v" id="mDistance">-</div></div>
+        <div class="stat-card"><div class="stat-k">Duration</div><div class="stat-v" id="mDuration">-</div></div>
+        <div class="stat-card"><div class="stat-k">Avg Speed</div><div class="stat-v" id="mSpeed">-</div></div>
+        <div class="stat-card"><div class="stat-k">Elevation +/-</div><div class="stat-v" id="mElev">-</div></div>
+      </div>
+
+      <p id="status" class="status mt-2 text-xs font-medium text-neutral-300">Menunggu file GPX...</p>
+
+      <div class="mt-3">
+        <p class="headline-font text-sm font-bold uppercase tracking-wide text-neutral-300">Elevation Profile</p>
+        <div class="elev-wrap mt-2">
+          <canvas id="elevCanvas"></canvas>
+          <div id="elevTooltip" class="elev-tooltip">0 m</div>
+          <div class="mt-2 flex justify-between text-[11px] font-semibold text-orange-300">
+            <span id="dragDistance">Drag: -</span>
+            <span id="dragElev">Elev: -</span>
+          </div>
+          <div class="mt-2 flex justify-between text-[11px] font-medium text-neutral-400">
+            <span id="elevMin">Min: -</span><span id="elevMax">Max: -</span>
+          </div>
+          <div class="mt-1 flex justify-between text-[11px] font-medium text-neutral-500">
+            <span id="distStart">0.00 km</span>
+            <span id="distEnd">0.00 km</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <p class="headline-font text-sm font-bold uppercase tracking-wide text-neutral-300">Waypoints</p>
+        <ul id="waypointList" class="waypoint-list mt-2 max-h-28 space-y-2 overflow-auto pr-1 text-xs text-neutral-200">
+          <li class="rounded-lg border border-white/15 bg-black/30 px-2 py-2">Belum ada waypoint.</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/@tmcw/togeojson@6.0.0/dist/togeojson.umd.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    const mapScope = document.getElementById("mapScope");
+    const map = L.map("map", { zoomControl: false }).setView([-2.5, 118], 5);
+    L.control.zoom({ position: "topright" }).addTo(map);
+
+    const tilePresets = {
+      dark: L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap, &copy; CARTO'
+      }),
+      light: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap, &copy; CARTO'
+      }),
+      street: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      })
+    };
+
+    let activeTile = tilePresets.dark.addTo(map);
+
+    const fileInput = document.getElementById("gpxFile");
+    const dropzone = document.getElementById("dropzone");
+    const basemapSelect = document.getElementById("basemapSelect");
+    const fitBtn = document.getElementById("fitBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const playBtn = document.getElementById("playBtn");
+    const hud = document.getElementById("hud");
+    const waypointList = document.getElementById("waypointList");
+    const statusEl = document.getElementById("status");
+    const elevCanvas = document.getElementById("elevCanvas");
+    const elevMinEl = document.getElementById("elevMin");
+    const elevMaxEl = document.getElementById("elevMax");
+    const elevTooltipEl = document.getElementById("elevTooltip");
+    const dragDistanceEl = document.getElementById("dragDistance");
+    const dragElevEl = document.getElementById("dragElev");
+    const distStartEl = document.getElementById("distStart");
+    const distEndEl = document.getElementById("distEnd");
+    const sheet = document.getElementById("sheet");
+    const sheetToggle = document.getElementById("sheetToggle");
+    const desktopSheetBtn = document.getElementById("desktopSheetBtn");
+
+    const fields = {
+      file: document.getElementById("mFile"),
+      points: document.getElementById("mPoints"),
+      distance: document.getElementById("mDistance"),
+      duration: document.getElementById("mDuration"),
+      speed: document.getElementById("mSpeed"),
+      elev: document.getElementById("mElev"),
+      distanceDesk: document.getElementById("mDistanceDesk"),
+      durationDesk: document.getElementById("mDurationDesk"),
+      speedDesk: document.getElementById("mSpeedDesk"),
+      distanceMobile: document.getElementById("mDistanceMobile"),
+      durationMobile: document.getElementById("mDurationMobile"),
+      elevMobile: document.getElementById("mElevMobile")
+    };
+
+    let activeLayer = null;
+    let routeCoords = [];
+    let distanceSeriesKm = [];
+    let playMarker = null;
+    let scrubMarker = null;
+    let playTimer = null;
+    let elevationSeries = [];
+    let scrubIndex = null;
+    let isScrubbing = false;
+    let sheetOpen = false;
+
+    function setStatus(text, isError = false) {
+      statusEl.textContent = text;
+      statusEl.classList.toggle("bad", isError);
+    }
+
+    function syncSummaryCards() {
+      fields.distanceDesk.textContent = fields.distance.textContent;
+      fields.durationDesk.textContent = fields.duration.textContent;
+      fields.speedDesk.textContent = fields.speed.textContent;
+      fields.distanceMobile.textContent = fields.distance.textContent;
+      fields.durationMobile.textContent = fields.duration.textContent;
+      fields.elevMobile.textContent = fields.elev.textContent;
+    }
+
+    function resetMeta() {
+      fields.file.textContent = "-";
+      fields.points.textContent = "-";
+      fields.distance.textContent = "-";
+      fields.duration.textContent = "-";
+      fields.speed.textContent = "-";
+      fields.elev.textContent = "-";
+      waypointList.innerHTML = '<li class="rounded-lg border border-white/15 bg-black/30 px-2 py-2">Belum ada waypoint.</li>';
+      clearElevationChart();
+      syncSummaryCards();
+    }
+
+    function flattenCoords(coords, bucket = []) {
+      if (!Array.isArray(coords)) return bucket;
+      if (typeof coords[0] === "number") {
+        bucket.push(coords);
+        return bucket;
+      }
+      for (const child of coords) flattenCoords(child, bucket);
+      return bucket;
+    }
+
+    function computeDistanceKm(points) {
+      let km = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        const a = points[i - 1];
+        const b = points[i];
+        km += map.distance([a[1], a[0]], [b[1], b[0]]) / 1000;
+      }
+      return km;
+    }
+
+    function computeElevation(points) {
+      let up = 0;
+      let down = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        const prev = Number(points[i - 1][2]);
+        const next = Number(points[i][2]);
+        if (Number.isFinite(prev) && Number.isFinite(next)) {
+          const diff = next - prev;
+          if (diff > 0) up += diff;
+          if (diff < 0) down += Math.abs(diff);
+        }
+      }
+      return { up, down };
+    }
+
+    function clearElevationChart() {
+      elevationSeries = [];
+      scrubIndex = null;
+      distanceSeriesKm = [];
+      elevMinEl.textContent = "Min: -";
+      elevMaxEl.textContent = "Max: -";
+      dragDistanceEl.textContent = "Drag: -";
+      dragElevEl.textContent = "Elev: -";
+      distStartEl.textContent = "0.00 km";
+      distEndEl.textContent = "0.00 km";
+      drawElevationChart([]);
+    }
+
+    function drawElevationChart(series, activeIndex = null) {
+      const ctx = elevCanvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const cssWidth = elevCanvas.clientWidth || 300;
+      const cssHeight = elevCanvas.clientHeight || 110;
+      elevCanvas.width = Math.floor(cssWidth * dpr);
+      elevCanvas.height = Math.floor(cssHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+      ctx.fillStyle = "rgba(10, 10, 10, 0.64)";
+      ctx.fillRect(0, 0, cssWidth, cssHeight);
+
+      if (!series.length) {
+        ctx.fillStyle = "rgba(230, 230, 230, 0.72)";
+        ctx.font = "600 12px Inter, sans-serif";
+        ctx.fillText("Tidak ada data elevasi", 10, 20);
+        return;
+      }
+
+      const min = Math.min(...series);
+      const max = Math.max(...series);
+      elevMinEl.textContent = `Min: ${min.toFixed(0)} m`;
+      elevMaxEl.textContent = `Max: ${max.toFixed(0)} m`;
+
+      const pad = 10;
+      const w = cssWidth - pad * 2;
+      const h = cssHeight - pad * 2;
+      const span = Math.max(1, max - min);
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i += 1) {
+        const y = pad + (h / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(pad + w, y);
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      series.forEach((value, index) => {
+        const x = pad + (index / Math.max(1, series.length - 1)) * w;
+        const y = pad + (1 - (value - min) / span) * h;
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#fc4c02";
+      ctx.stroke();
+
+      const gradient = ctx.createLinearGradient(0, pad, 0, pad + h);
+      gradient.addColorStop(0, "rgba(252, 76, 2, 0.32)");
+      gradient.addColorStop(1, "rgba(252, 76, 2, 0.1)");
+      ctx.lineTo(pad + w, pad + h);
+      ctx.lineTo(pad, pad + h);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      if (Number.isInteger(activeIndex)) {
+        const idx = Math.max(0, Math.min(series.length - 1, activeIndex));
+        const x = pad + (idx / Math.max(1, series.length - 1)) * w;
+        const y = pad + (1 - (series[idx] - min) / span) * h;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x, pad);
+        ctx.lineTo(x, pad + h);
+        ctx.stroke();
+
+        ctx.fillStyle = "#007AFF";
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function buildDistanceSeries(points) {
+      const out = [];
+      let total = 0;
+      for (let i = 0; i < points.length; i += 1) {
+        if (i > 0) {
+          const prev = points[i - 1];
+          const curr = points[i];
+          total += map.distance([prev[1], prev[0]], [curr[1], curr[0]]) / 1000;
+        }
+        out.push(total);
+      }
+      return out;
+    }
+
+    function sanitizeElevationSeries(points) {
+      const raw = points.map((p) => Number(p[2]));
+      let lastKnown = null;
+      for (let i = 0; i < raw.length; i += 1) {
+        if (Number.isFinite(raw[i])) {
+          lastKnown = raw[i];
+        } else if (Number.isFinite(lastKnown)) {
+          raw[i] = lastKnown;
+        }
+      }
+      for (let i = raw.length - 1; i >= 0; i -= 1) {
+        if (!Number.isFinite(raw[i])) {
+          raw[i] = i < raw.length - 1 ? raw[i + 1] : 0;
+        }
+      }
+      return raw;
+    }
+
+    function clearScrubMarker() {
+      if (!scrubMarker) return;
+      map.removeLayer(scrubMarker);
+      scrubMarker = null;
+    }
+
+    function placeElevTooltip(clientX, clientY, elevText) {
+      if (!isScrubbing) {
+        elevTooltipEl.style.display = "none";
+        return;
+      }
+      const rect = elevCanvas.getBoundingClientRect();
+      const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+      const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
+      elevTooltipEl.style.left = `${x}px`;
+      elevTooltipEl.style.top = `${y}px`;
+      elevTooltipEl.textContent = elevText;
+      elevTooltipEl.style.display = "block";
+    }
+
+    function updateScrubMarker(index, panMap = true, evt = null) {
+      if (!routeCoords.length) return;
+      const idx = Math.max(0, Math.min(routeCoords.length - 1, index));
+      scrubIndex = idx;
+      const [lng, lat] = routeCoords[idx];
+      if (!scrubMarker) {
+        scrubMarker = L.circleMarker([lat, lng], {
+          radius: 7,
+          color: "#ffffff",
+          fillColor: "#007AFF",
+          fillOpacity: 0.95,
+          weight: 2
+        }).addTo(map);
+      } else {
+        scrubMarker.setLatLng([lat, lng]);
+      }
+      if (panMap) {
+        map.panTo([lat, lng], { animate: false });
+      }
+
+      const dist = distanceSeriesKm[idx] || 0;
+      const elev = Number.isFinite(elevationSeries[idx]) ? elevationSeries[idx] : null;
+      dragDistanceEl.textContent = `Drag: ${dist.toFixed(2)} km`;
+      const elevText = elev === null ? "-" : `${elev.toFixed(0)} m`;
+      dragElevEl.textContent = `Elev: ${elevText}`;
+      if (evt) {
+        placeElevTooltip(evt.clientX, evt.clientY, elevText);
+      }
+      drawElevationChart(elevationSeries, scrubIndex);
+    }
+
+    function scrubFromEvent(evt) {
+      if (!routeCoords.length) return;
+      const rect = elevCanvas.getBoundingClientRect();
+      const x = Math.max(0, Math.min(rect.width, evt.clientX - rect.left));
+      const ratio = rect.width > 0 ? x / rect.width : 0;
+      const idx = Math.round(ratio * Math.max(0, routeCoords.length - 1));
+      updateScrubMarker(idx, true, evt);
+    }
+
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds) || seconds <= 0) return "-";
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      if (h > 0) return `${h}j ${m}m ${s}d`;
+      return `${m}m ${s}d`;
+    }
+
+    function extractTimes(xmlDoc) {
+      const timeNodes = Array.from(xmlDoc.querySelectorAll("trkpt > time"));
+      if (!timeNodes.length) return [];
+      return timeNodes
+        .map((n) => Date.parse(n.textContent || ""))
+        .filter((t) => Number.isFinite(t));
+    }
+
+    function setWaypoints(items) {
+      if (!items.length) {
+        waypointList.innerHTML = '<li class="rounded-lg border border-white/15 bg-black/30 px-2 py-2">Tidak ada waypoint.</li>';
+        return;
+      }
+      waypointList.innerHTML = items
+        .slice(0, 50)
+        .map((wp, idx) => {
+          const label = wp.name || `Waypoint ${idx + 1}`;
+          return `<li class="rounded-lg border border-white/15 bg-black/30 px-2 py-2">${label}<br/><small>${wp.lat.toFixed(5)}, ${wp.lng.toFixed(5)}</small></li>`;
+        })
+        .join("");
+    }
+
+    function setSheetState(nextOpen) {
+      sheetOpen = nextOpen;
+      if (window.innerWidth >= 768) {
+        sheet.classList.add("sheet-open");
+        sheet.classList.remove("sheet-hidden");
+        return;
+      }
+      sheet.classList.toggle("sheet-open", sheetOpen);
+      sheet.classList.toggle("sheet-hidden", !sheetOpen);
+    }
+
+    function stopPlayback() {
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      if (playMarker) {
+        map.removeLayer(playMarker);
+        playMarker = null;
+      }
+      hud.style.display = "none";
+      playBtn.innerHTML = '<i data-lucide="play" class="h-4 w-4"></i><span>Play</span>';
+      lucide.createIcons();
+    }
+
+    function startPlayback() {
+      if (!routeCoords.length) {
+        setStatus("Belum ada route untuk diputar.", true);
+        return;
+      }
+
+      stopPlayback();
+      clearScrubMarker();
+      hud.style.display = "inline-flex";
+
+      const step = Math.max(1, Math.floor(routeCoords.length / 220));
+      let idx = 0;
+
+      const start = routeCoords[0];
+      playMarker = L.circleMarker([start[1], start[0]], {
+        radius: 8,
+        color: "#fc4c02",
+        fillColor: "#fc4c02",
+        fillOpacity: 0.92,
+        weight: 2
+      }).addTo(map);
+
+      playBtn.innerHTML = '<i data-lucide="square" class="h-4 w-4"></i><span>Stop</span>';
+      lucide.createIcons();
+
+      playTimer = setInterval(() => {
+        idx += step;
+        if (idx >= routeCoords.length) {
+          hud.textContent = "Playback selesai";
+          stopPlayback();
+          return;
+        }
+        const [lng, lat] = routeCoords[idx];
+        playMarker.setLatLng([lat, lng]);
+        hud.textContent = `Playback ${(idx / routeCoords.length * 100).toFixed(0)}%`;
+      }, 60);
+    }
+
+    function clearMap() {
+      stopPlayback();
+      clearScrubMarker();
+      if (activeLayer) {
+        map.removeLayer(activeLayer);
+        activeLayer = null;
+      }
+      routeCoords = [];
+      fileInput.value = "";
+      resetMeta();
+      setStatus("Data dibersihkan. Menunggu file GPX...");
+    }
+
+    function fitTrack() {
+      if (!activeLayer) return;
+      const bounds = activeLayer.getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds.pad(0.08));
+    }
+
+    async function handleFile(file) {
+      if (!file) return;
+      stopPlayback();
+      clearScrubMarker();
+      setStatus("Membaca file GPX...");
+
+      try {
+        const raw = await file.text();
+        const xml = new DOMParser().parseFromString(raw, "application/xml");
+
+        if (xml.querySelector("parsererror")) {
+          throw new Error("Format XML/GPX tidak valid.");
+        }
+
+        const geojson = toGeoJSON.gpx(xml);
+        if (!geojson.features.length) {
+          throw new Error("Tidak ada data track/route/waypoint di file.");
+        }
+
+        if (activeLayer) {
+          map.removeLayer(activeLayer);
+        }
+
+        activeLayer = L.geoJSON(geojson, {
+          style: {
+            color: "#fc4c02",
+            weight: 5,
+            opacity: 0.95
+          },
+          pointToLayer: (feature, latlng) => {
+            const isWaypoint = feature.geometry?.type === "Point";
+            return L.circleMarker(latlng, {
+              radius: isWaypoint ? 6 : 4,
+              color: isWaypoint ? "#007AFF" : "#fc4c02",
+              fillColor: isWaypoint ? "#007AFF" : "#fc4c02",
+              fillOpacity: 0.9,
+              weight: 1
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const n = feature?.properties?.name || "Tanpa nama";
+            const t = feature?.geometry?.type || "Unknown";
+            layer.bindPopup(`<strong>${n}</strong><br/>${t}`);
+          }
+        }).addTo(map);
+
+        fitTrack();
+
+        const tracks = [];
+        const waypoints = [];
+
+        for (const feature of geojson.features) {
+          const type = feature.geometry?.type;
+          const coords = feature.geometry?.coordinates;
+          if (type === "Point") {
+            waypoints.push({
+              name: feature.properties?.name || "Tanpa nama",
+              lng: coords[0],
+              lat: coords[1]
+            });
+          } else {
+            flattenCoords(coords, tracks);
+          }
+        }
+
+        routeCoords = tracks;
+
+        const distance = computeDistanceKm(tracks);
+        const elev = computeElevation(tracks);
+        distanceSeriesKm = buildDistanceSeries(tracks);
+        const elevSeries = sanitizeElevationSeries(tracks);
+        const times = extractTimes(xml);
+        const durationSec = times.length > 1 ? (times[times.length - 1] - times[0]) / 1000 : NaN;
+        const avgSpeed = Number.isFinite(durationSec) && durationSec > 0 ? distance / (durationSec / 3600) : NaN;
+
+        fields.file.textContent = file.name;
+        fields.points.textContent = String(tracks.length);
+        fields.distance.textContent = `${distance.toFixed(2)} km`;
+        fields.duration.textContent = formatDuration(durationSec);
+        fields.speed.textContent = Number.isFinite(avgSpeed) ? `${avgSpeed.toFixed(2)} km/j` : "-";
+        fields.elev.textContent = `${elev.up.toFixed(0)}m / ${elev.down.toFixed(0)}m`;
+
+        setWaypoints(waypoints);
+        elevationSeries = elevSeries;
+        distStartEl.textContent = "0.00 km";
+        distEndEl.textContent = `${(distanceSeriesKm[distanceSeriesKm.length - 1] || 0).toFixed(2)} km`;
+        dragDistanceEl.textContent = "Drag: 0.00 km";
+        dragElevEl.textContent = Number.isFinite(elevationSeries[0]) ? `Elev: ${elevationSeries[0].toFixed(0)} m` : "Elev: -";
+        drawElevationChart(elevationSeries);
+        syncSummaryCards();
+        setStatus(`GPX dimuat: ${file.name} (waypoint: ${waypoints.length}).`);
+      } catch (err) {
+        clearMap();
+        setStatus(`Gagal memuat GPX: ${err.message}`, true);
+      }
+    }
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      handleFile(file);
+    });
+
+    ["dragenter", "dragover"].forEach((evt) => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add("ring-2", "ring-orange-500/50");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((evt) => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove("ring-2", "ring-orange-500/50");
+      });
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleFile(file);
+    });
+
+    elevCanvas.addEventListener("pointerdown", (e) => {
+      if (!routeCoords.length) return;
+      if (playTimer) stopPlayback();
+      isScrubbing = true;
+      elevCanvas.classList.add("scrubbing");
+      elevCanvas.setPointerCapture(e.pointerId);
+      scrubFromEvent(e);
+    });
+
+    elevCanvas.addEventListener("pointermove", (e) => {
+      if (!isScrubbing) return;
+      scrubFromEvent(e);
+    });
+
+    elevCanvas.addEventListener("pointerup", (e) => {
+      if (!isScrubbing) return;
+      isScrubbing = false;
+      elevCanvas.classList.remove("scrubbing");
+      elevCanvas.releasePointerCapture(e.pointerId);
+      elevTooltipEl.style.display = "none";
+    });
+
+    elevCanvas.addEventListener("pointercancel", () => {
+      isScrubbing = false;
+      elevCanvas.classList.remove("scrubbing");
+      elevTooltipEl.style.display = "none";
+    });
+
+    basemapSelect.addEventListener("change", () => {
+      const selected = tilePresets[basemapSelect.value] || tilePresets.dark;
+      if (activeTile) map.removeLayer(activeTile);
+      activeTile = selected.addTo(map);
+      mapScope.classList.toggle("map-dark", basemapSelect.value === "dark");
+      mapScope.classList.toggle("map-mono", basemapSelect.value === "light");
+    });
+
+    playBtn.addEventListener("click", () => {
+      if (playTimer) stopPlayback();
+      else startPlayback();
+    });
+
+    fitBtn.addEventListener("click", fitTrack);
+    clearBtn.addEventListener("click", clearMap);
+
+    sheetToggle.addEventListener("click", () => setSheetState(!sheetOpen));
+    desktopSheetBtn.addEventListener("click", () => {
+      const isDesktopHidden = sheet.classList.contains("md:hidden");
+      sheet.classList.toggle("md:hidden", !isDesktopHidden);
+      const hiddenAfter = !isDesktopHidden;
+      desktopSheetBtn.textContent = hiddenAfter ? "Show" : "Hide";
+    });
+
+    window.addEventListener("resize", () => {
+      setSheetState(sheetOpen);
+      map.invalidateSize();
+      drawElevationChart(elevationSeries, scrubIndex);
+    });
+
+    lucide.createIcons();
+    resetMeta();
+    setSheetState(false);
+  </script>
+</body>
+</html>
